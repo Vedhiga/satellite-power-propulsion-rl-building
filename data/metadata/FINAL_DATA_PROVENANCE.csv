@@ -1,0 +1,38 @@
+dataset,file,variable,classification,unit,source,source_type,observed_or_generated,calculation_method,assumption,notes
+BIRDS EPS,power_subsystem.csv,timestamp_utc,IDENTIFIER,s,NEPALISAT/RAAVANA/TSURU/UGUISU.xlsx,Flight Telemetry,OBSERVED,Direct timestamp log,,Telemetry sampling time relative offset
+BIRDS EPS,power_subsystem.csv,spacecraft_id,IDENTIFIER,text,BIRDS Flight Telemetry Files,Flight Telemetry,OBSERVED,Satellite identifier string,,"NepaliSat-1, Raavana-1, Tsuru, Uguisu"
+BIRDS EPS,power_subsystem.csv,battery_voltage_V,OBSERVED,V,Vbat (V) column in BIRDS telemetry,Flight Telemetry,OBSERVED,Direct sensor telemetry log,,1S Li-ion battery pack terminal voltage
+BIRDS EPS,power_subsystem.csv,battery_current_A,OBSERVED,A,Ibatt(mA) column in BIRDS telemetry,Flight Telemetry,OBSERVED,Ibatt(mA) / 1000.0,,Battery pack bus current
+BIRDS EPS,power_subsystem.csv,battery_temp_C,OBSERVED,°C,Tbatt (°C) column in BIRDS telemetry,Flight Telemetry,OBSERVED,Direct sensor telemetry log,,Battery cell temperature
+BIRDS EPS,power_subsystem.csv,solar_voltage_px_V ... pz_V,OBSERVED,V,Vp* (mV) columns in BIRDS telemetry,Flight Telemetry,OBSERVED,Vp*(mV) / 1000.0,,"Individual solar panel voltages (+X,-X,+Y,-Y,+Z)"
+BIRDS EPS,power_subsystem.csv,solar_current_px_A ... pz_A,OBSERVED,A,Ip* (mA) columns in BIRDS telemetry,Flight Telemetry,OBSERVED,Ip*(mA) / 1000.0,,"Individual solar panel currents (+X,-X,+Y,-Y,+Z)"
+BIRDS EPS,power_subsystem.csv,P_solar_total_W,DERIVED,W,Panel V & I telemetry,Flight Telemetry,DERIVED,Sum of (V_panel_i * I_panel_i),Ohmic panel sum,Total generated solar array power
+BIRDS EPS,power_subsystem.csv,P_battery_W,DERIVED,W,Battery V & I telemetry,Flight Telemetry,DERIVED,V_bat * I_bat,Battery bus power magnitude,Battery power magnitude
+BIRDS EPS,power_subsystem.csv,P_load_W,DERIVED,W,Power balance formula,Flight Telemetry,DERIVED,P_solar_total + P_battery,Unclipped total spacecraft bus power,Derived bus power. No arbitrary clipping applied.
+CelesTrak Active,orbit_subsystem.csv,name,IDENTIFIER,text,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,Catalog entry name,,Satellite catalog name
+CelesTrak Active,orbit_subsystem.csv,epoch,IDENTIFIER,UTC String,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,Catalog TLE epoch,,Orbital element snapshot epoch
+CelesTrak Active,orbit_subsystem.csv,inclination_deg,OBSERVED,deg,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP inclination element,,Orbital inclination
+CelesTrak Active,orbit_subsystem.csv,raan_deg,OBSERVED,deg,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP RAAN element,,Right ascension of ascending node
+CelesTrak Active,orbit_subsystem.csv,eccentricity,OBSERVED,dimensionless,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP eccentricity element,,Orbital eccentricity
+CelesTrak Active,orbit_subsystem.csv,arg_perigee_deg,OBSERVED,deg,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP arg of perigee element,,Argument of perigee
+CelesTrak Active,orbit_subsystem.csv,mean_anomaly_deg,OBSERVED,deg,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP mean anomaly element,,Mean anomaly
+CelesTrak Active,orbit_subsystem.csv,mean_motion_rev_per_day,OBSERVED,rev/day,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,GP mean motion element,,Mean motion
+CelesTrak Active,orbit_subsystem.csv,altitude_km,OBSERVED,km,CelesTrak Active GP Catalog,Public Orbital Catalog,OBSERVED,Catalog altitude field,,Mean orbital altitude
+CelesTrak Active,orbit_subsystem.csv,orbit_type,IDENTIFIER,text,CelesTrak Categorization,Public Orbital Catalog,OBSERVED,Categorization label,,LEO/GEO/MEO/HEO classification
+CelesTrak Active,orbit_subsystem.csv,semi_major_axis_a_km,DERIVED,km,CelesTrak mean motion n,Public Orbital Catalog,DERIVED,(mu / (n_rad_s)^2)^(1/3),"Keplerian two-body, mu=398600.4418",Derived semi-major axis
+CelesTrak Active,orbit_subsystem.csv,derived_perigee_altitude_km,DERIVED,km,Semi-major axis & eccentricity,Public Orbital Catalog,DERIVED,a*(1 - e) - R_E,Spherical Earth R_E=6378.137 km,Derived perigee altitude
+CelesTrak Active,orbit_subsystem.csv,derived_apogee_altitude_km,DERIVED,km,Semi-major axis & eccentricity,Public Orbital Catalog,DERIVED,a*(1 + e) - R_E,Spherical Earth R_E=6378.137 km,Derived apogee altitude
+STFT Propulsion,propulsion_subsystem.csv,"uid, filename, test_id, sn",IDENTIFIER,text/int,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata file columns,,Sequence and hardware thruster IDs
+STFT Propulsion,propulsion_subsystem.csv,test_pressure,OBSERVED,bars,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata inlet pressure,,Test inlet pressure (5 to 24 bars)
+STFT Propulsion,propulsion_subsystem.csv,test_mode,COMMAND_CONTROL,text,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata test mode string,,Commanded test firing mode
+STFT Propulsion,propulsion_subsystem.csv,"vl1, vl2, vl3",OBSERVED,binary flag,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata vapor lock flags,,Vapor lock indicators
+STFT Propulsion,propulsion_subsystem.csv,"anomalous, anomaly_code",OBSERVED,bool/int,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata anomaly indicators,,Anomaly status (270 anomalous sequences excluded)
+STFT Propulsion,propulsion_subsystem.csv,cumulated_throughput,OBSERVED,kg,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata cumulative propellant,,Cumulative propellant consumed
+STFT Propulsion,propulsion_subsystem.csv,cumulated_on_time,OBSERVED,s,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata cumulative ON time,,Cumulative thruster ON firing time
+STFT Propulsion,propulsion_subsystem.csv,cumulated_pulses,OBSERVED,count,stft_metadata.csv,Physics-Based Synthetic Hot-Fire Dataset,OBSERVED,Metadata cumulative pulses,,Cumulative firing pulses
+SolAero Z4J+,subsystem_parameters.csv,"solaero_z4j_Voc_V, Vmp_V, efficiency_bol_pct",MODEL_PARAMETER,V / %,RL-SolAero-Data-Sheet-Z4J+-v8.pdf,Manufacturer Datasheet,OBSERVED,Direct manufacturer specification,28°C AM0 135.3 mW/cm2,Triple-junction solar cell parameters
+BIRDS 1U Spec,subsystem_parameters.csv,birds3_1u_cubesat_mass_limit_kg,UNVERIFIED,kg,BIRDS Project 1U Specification,Aerospace Standard Spec,OBSERVED,1U CubeSat physical mass specification limit,1U flight unit spec limit,UNVERIFIED in provided raw files. Excluded from EDA and model parameters.
+Simulation Config,subsystem_parameters.csv,simulation_battery_capacity_ah,ASSUMPTION,Ah,Researcher Simulation Environment Design,Simulation Model Baseline Choice,ASSUMPTION,Researcher-selected hypothetical value,18650 cell rating assumption for RL state model,Excluded from EDA inputs
+Simulation Config,subsystem_parameters.csv,"simulation_target_orbit_altitude_km, inclination_deg",ASSUMPTION,km / deg,Researcher Simulation Environment Design,Simulation Model Baseline Choice,ASSUMPTION,Researcher-selected hypothetical value,"Target LEO reference orbit (400 km, 51.6°)",Excluded from EDA inputs
+Simulation Config,subsystem_parameters.csv,simulation_spacecraft_wet_mass_kg,ASSUMPTION,kg,Researcher Simulation Environment Design,Simulation Model Baseline Choice,ASSUMPTION,Researcher-selected hypothetical value,Nominal 12.0 kg wet mass for thruster maneuvers,Excluded from EDA inputs
+Simulation Config,subsystem_parameters.csv,simulation_thruster_isp_s,DERIVED / ASSUMPTION,s,STFT F/mfr Derivation & Sim Config,Simulation Model Baseline Choice,ASSUMPTION,Derived Isp = F / (mfr * g0),Nominal monopropellant RCT operation (225 s),Excluded from EDA inputs
