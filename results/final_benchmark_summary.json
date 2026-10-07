@@ -1,0 +1,84 @@
+{
+  "training_metadata": {
+    "num_episodes": 500,
+    "final_epsilon": 0.018023373266311038,
+    "mean_last_100_reward": -38.41171130168072
+  },
+  "benchmark_results": {
+    "nominal": {
+      "scenario_name": "Nominal LEO Operations",
+      "RuleBasedController": {
+        "mean_reward": -45.180691179869044,
+        "std_reward": 0.6100667970320014,
+        "mean_tracking_error_km": 1.7924628091530732,
+        "std_tracking_error_km": 2.220446049250313e-16,
+        "mean_fuel_expended_g": 5.399999999999406,
+        "std_fuel_expended_g": 8.881784197001252e-16,
+        "mean_final_soc_pct": 27.93933708567861,
+        "std_final_soc_pct": 3.3662357039628357,
+        "survival_rate_pct": 100.0
+      },
+      "TabularQLearningAgent": {
+        "mean_reward": -28.25801309568434,
+        "std_reward": 11.500829341499836,
+        "mean_tracking_error_km": 1.2836535882227857,
+        "std_tracking_error_km": 0.5776619268182,
+        "mean_fuel_expended_g": 6.929999999999614,
+        "std_fuel_expended_g": 1.7335224255834767,
+        "mean_final_soc_pct": 92.90963101938716,
+        "std_final_soc_pct": 7.513361905688901,
+        "survival_rate_pct": 100.0
+      }
+    },
+    "solar_storm": {
+      "scenario_name": "Solar Storm (Array Degradation)",
+      "RuleBasedController": {
+        "mean_reward": -47.30857060627306,
+        "std_reward": 3.7780754506789163,
+        "mean_tracking_error_km": 1.7924628091530732,
+        "std_tracking_error_km": 2.220446049250313e-16,
+        "mean_fuel_expended_g": 5.399999999999406,
+        "std_fuel_expended_g": 8.881784197001252e-16,
+        "mean_final_soc_pct": 27.077861163227134,
+        "std_final_soc_pct": 3.2453451621155134,
+        "survival_rate_pct": 100.0
+      },
+      "TabularQLearningAgent": {
+        "mean_reward": -28.030704492685135,
+        "std_reward": 11.380713805360875,
+        "mean_tracking_error_km": 1.2836535882227857,
+        "std_tracking_error_km": 0.5776619268182,
+        "mean_fuel_expended_g": 6.929999999999614,
+        "std_fuel_expended_g": 1.7335224255834767,
+        "mean_final_soc_pct": 83.17125286637443,
+        "std_final_soc_pct": 4.888090272738741,
+        "survival_rate_pct": 100.0
+      }
+    },
+    "degraded_bus": {
+      "scenario_name": "Degraded Bus (Low Initial SOC & Battery Aging)",
+      "RuleBasedController": {
+        "mean_reward": -66.73780497722544,
+        "std_reward": 9.40091421591528,
+        "mean_tracking_error_km": 2.1752941538061443,
+        "std_tracking_error_km": 4.440892098500626e-16,
+        "mean_fuel_expended_g": 12.59999999999861,
+        "std_fuel_expended_g": 1.7763568394002505e-15,
+        "mean_final_soc_pct": 27.283197831978374,
+        "std_final_soc_pct": 4.679698737770467,
+        "survival_rate_pct": 100.0
+      },
+      "TabularQLearningAgent": {
+        "mean_reward": -39.193222083409715,
+        "std_reward": 7.754044925442571,
+        "mean_tracking_error_km": 1.8002456982934931,
+        "std_tracking_error_km": 0.3965365387155465,
+        "mean_fuel_expended_g": 13.49999999999918,
+        "std_fuel_expended_g": 1.2074767078500515,
+        "mean_final_soc_pct": 90.67208672086726,
+        "std_final_soc_pct": 9.053400517367587,
+        "survival_rate_pct": 100.0
+      }
+    }
+  }
+}
