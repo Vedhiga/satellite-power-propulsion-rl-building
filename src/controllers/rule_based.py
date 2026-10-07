@@ -1,18 +1,10 @@
 class RuleBasedController:
     """
     Deterministic Heuristic Rule-Based Controller for Autonomous Satellite Operations.
-    Implements coupled energy and propulsion management heuristics:
-    - Energy Management:
-        * Safe Mode (2.0 W) if SOC < 0.30 (Battery Recovery)
-        * Payload Mode (12.0 W) if SOC >= 0.30 and in direct sunlight
-        * Standard Mode (5.0 W) if SOC >= 0.30 and in eclipse
-    - Propulsion Management:
-        * Inhibit Thruster Burn (0.0 s) if SOC <= 0.25 (Power Safety Interlock)
-        * Command 10.0 s Burn if Altitude < 392.0 km (Urgent Orbit Recovery)
-        * Command 2.0 s Burn if 392.0 km <= Altitude < 398.0 km (Proportional Station-keeping)
-        * Command 0.0 s Burn if Altitude >= 398.0 km (Idle Orbit Maintenance)
+    Implements coupled energy and propulsion management heuristics.
     """
-    def __init__(self):
+    def __init__(self, env=None):
+        self.env = env
         # Action Table Mapping: (power_mode, burn_duration_s) -> action_idx
         self.action_map = {
             (0, 0.0): 0, (0, 2.0): 1, (0, 10.0): 2,
@@ -20,16 +12,31 @@ class RuleBasedController:
             (2, 0.0): 6, (2, 2.0): 7, (2, 10.0): 8
         }
 
-    def select_action(self, env):
+    def select_action(self, *args, **kwargs):
         """
-        Selects discrete action index based on current environment state attributes.
+        Flexibly accepts either select_action(env) or select_action(altitude, soc, is_sun).
         """
-        # Determine eclipse / sunlight state
-        orbit_phase = (env.time % env.cfg.orbit_period_s) / env.cfg.orbit_period_s
-        is_sun = 0 if orbit_phase < env.cfg.eclipse_fraction else 1
+        if len(args) == 1 and hasattr(args[0], 'soc'):
+            env = args[0]
+            altitude = env.altitude
+            soc = env.soc
+            orbit_phase = (env.time % env.cfg.orbit_period_s) / env.cfg.orbit_period_s
+            is_sun = 0 if orbit_phase < env.cfg.eclipse_fraction else 1
+        elif len(args) >= 2:
+            altitude = args[0]
+            soc = args[1]
+            is_sun = args[2] if len(args) > 2 else 1
+        elif self.env is not None:
+            env = self.env
+            altitude = env.altitude
+            soc = env.soc
+            orbit_phase = (env.time % env.cfg.orbit_period_s) / env.cfg.orbit_period_s
+            is_sun = 0 if orbit_phase < env.cfg.eclipse_fraction else 1
+        else:
+            raise ValueError("Environment or state parameters must be provided to RuleBasedController.")
 
         # 1. Energy Management Strategy
-        if env.soc < 0.30:
+        if soc < 0.30:
             power_mode = 0  # Safe Mode (2.0 W)
         elif is_sun == 1:
             power_mode = 2  # Payload Mode (12.0 W)
@@ -37,13 +44,13 @@ class RuleBasedController:
             power_mode = 1  # Standard Mode (5.0 W)
 
         # 2. Propulsion Station-keeping Strategy
-        if env.soc <= 0.25:
-            burn_duration = 0.0  # Safety interlock: inhibit propulsion when battery is low
-        elif env.altitude < 392.0:
+        if soc <= 0.25:
+            burn_duration = 0.0  # Safety interlock
+        elif altitude < 392.0:
             burn_duration = 10.0  # Major recovery burn
-        elif 392.0 <= env.altitude < 398.0:
+        elif 392.0 <= altitude < 398.0:
             burn_duration = 2.0   # Proportional thrust correction
         else:
-            burn_duration = 0.0   # Idle (no burn needed near target 400.0 km)
+            burn_duration = 0.0   # Idle
 
         return self.action_map[(power_mode, burn_duration)]

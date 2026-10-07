@@ -3,13 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class RewardWeights:
-    """
-    Normalized multi-objective cost function weights for satellite operations:
-    - alpha_power: Bus electric power consumption cost weight
-    - beta_orbit: Orbital altitude tracking error cost weight
-    - gamma_battery: Deep battery discharge risk penalty weight
-    - delta_fuel: Monopropellant expenditure cost weight
-    """
     alpha_power: float = 0.10     # Weight for normalized bus power draw
     beta_orbit: float = 0.40      # Weight for normalized orbital altitude error
     gamma_battery: float = 0.20   # Weight for battery health risk penalty
@@ -17,88 +10,50 @@ class RewardWeights:
 
 class MultiObjectiveRewardEvaluator:
     """
-    Computes normalized multi-objective scalar reward and component cost breakdown
-    for small-satellite power and station-keeping management.
+    Computes normalized multi-objective operational cost and scalar RL reward.
+    Cost: f = alpha*P_norm + beta*O_norm + gamma*B_penalty + delta*F_norm
+    Reward: r = -f - R_terminal * Done
     """
     def __init__(self, weights: RewardWeights = None):
-        self.weights = weights if weights is not None else RewardWeights()
+        self.w = weights if weights is not None else RewardWeights()
+        self.h_target = 400.0         # km
+        self.h_tolerance = 2.0        # km (dead-band half-width)
+        self.max_bus_power = 12.667   # W (12W payload + 0.667W valve draw)
+        self.max_step_fuel_g = 4.5    # g (0.45 g/s * 10 s max burn)
 
-    def compute_battery_penalty(self, soc: float) -> float:
-        """
-        Computes non-linear penalty for battery State of Charge (SOC):
-        - Severe penalty (10.0) if SOC < 0.20 (Terminal Brownout zone)
-        - Quadratic penalty scaling if 0.20 <= SOC < 0.40 (Deep Discharge risk)
-        - Zero penalty if SOC >= 0.40 (Healthy operational range)
-        """
-        if soc < 0.20:
-            return 10.0
-        elif soc < 0.40:
-            return float(((0.40 - soc) / 0.20) ** 2)
-        return 0.0
+    def evaluate(self, altitude_km: float, soc: float, bus_power_w: float, fuel_used_g: float):
+        # 1. Normalized Orbit Tracking Error
+        alt_error_km = abs(altitude_km - self.h_target)
+        O_norm = alt_error_km / self.h_tolerance
 
-    def compute_reward(
-        self,
-        altitude: float,
-        soc: float,
-        m_used_kg: float,
-        p_bus: float,
-        h_target: float = 400.0,
-        h_tolerance: float = 2.0
-    ) -> float:
-        """
-        Computes scalarized negative cost reward r in [-inf, 0].
-        """
-        norm_orbit_err = abs(altitude - h_target) / h_tolerance
-        norm_fuel_used = m_used_kg / (0.00045 * 10.0)  # Normalized by max 10s burn fuel mass
-        norm_power_bus = p_bus / 12.67                  # Normalized by maximum peak bus power
-        batt_penalty = self.compute_battery_penalty(soc)
+        # 2. Normalized Propellant Consumption
+        F_norm = fuel_used_g / self.max_step_fuel_g
 
-        cost = (
-            (self.weights.beta_orbit * norm_orbit_err) +
-            (self.weights.delta_fuel * norm_fuel_used) +
-            (self.weights.alpha_power * norm_power_bus) +
-            (self.weights.gamma_battery * batt_penalty)
+        # 3. Normalized Bus Power Load
+        P_norm = bus_power_w / self.max_bus_power
+
+        # 4. Non-linear Battery Safety Barrier Penalty
+        if soc >= 0.40:
+            B_penalty = 0.0
+        elif soc >= 0.20:
+            B_penalty = ((0.40 - soc) / 0.20) ** 2
+        else:
+            B_penalty = 10.0
+
+        step_cost = (
+            self.w.beta_orbit * O_norm +
+            self.w.delta_fuel * F_norm +
+            self.w.alpha_power * P_norm +
+            self.w.gamma_battery * B_penalty
         )
-        return float(-cost)
-
-    def evaluate_step(
-        self,
-        altitude: float,
-        soc: float,
-        m_used_kg: float,
-        p_bus: float,
-        h_target: float = 400.0,
-        h_tolerance: float = 2.0
-    ) -> dict:
-        """
-        Returns full cost breakdown and resulting reward dictionary.
-        """
-        norm_orbit_err = abs(altitude - h_target) / h_tolerance
-        norm_fuel_used = m_used_kg / (0.00045 * 10.0)
-        norm_power_bus = p_bus / 12.67
-        batt_penalty = self.compute_battery_penalty(soc)
-
-        cost_orbit = self.weights.beta_orbit * norm_orbit_err
-        cost_fuel = self.weights.delta_fuel * norm_fuel_used
-        cost_power = self.weights.alpha_power * norm_power_bus
-        cost_battery = self.weights.gamma_battery * batt_penalty
-
-        total_cost = cost_orbit + cost_fuel + cost_power + cost_battery
-        reward = -total_cost
-
-        return {
-            "reward": float(reward),
-            "total_cost": float(total_cost),
-            "cost_components": {
-                "orbit_tracking": float(cost_orbit),
-                "propellant_consumption": float(cost_fuel),
-                "power_bus_draw": float(cost_power),
-                "battery_health": float(cost_battery)
-            },
-            "normalized_metrics": {
-                "norm_orbit_err": float(norm_orbit_err),
-                "norm_fuel_used": float(norm_fuel_used),
-                "norm_power_bus": float(norm_power_bus),
-                "batt_penalty": float(batt_penalty)
-            }
+        
+        step_reward = -step_cost
+        
+        cost_breakdown = {
+            "O_norm": O_norm,
+            "F_norm": F_norm,
+            "P_norm": P_norm,
+            "B_penalty": B_penalty,
+            "total_cost": step_cost
         }
+        return step_reward, cost_breakdown
