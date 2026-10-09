@@ -3,7 +3,9 @@
 import React, { useState, useMemo } from "react";
 import { runSimulationJS, StepRecord } from "@/lib/satelliteSim";
 import { TutorialModal } from "@/components/TutorialModal";
-import { OrbitVisualizer } from "@/components/OrbitVisualizer";
+import { CentralOrbitDiagram } from "@/components/CentralOrbitDiagram";
+import { StateBinsHud } from "@/components/StateBinsHud";
+import { ScenarioPresets } from "@/components/ScenarioPresets";
 import { TelemetryCharts } from "@/components/TelemetryCharts";
 import { RuleInspector } from "@/components/RuleInspector";
 import { InputControls } from "@/components/InputControls";
@@ -19,6 +21,9 @@ import {
   SkipForward,
   HelpCircle,
   Github,
+  Sun,
+  Moon,
+  FastForward,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -26,22 +31,28 @@ export default function DashboardPage() {
   const [initialAlt, setInitialAlt] = useState(396.5);
   const [initialSocPct, setInitialSocPct] = useState(75);
   const [initialPropellantKg, setInitialPropellantKg] = useState(1.5);
+  const [startTimeSec, setStartTimeSec] = useState(0);
   const [numSteps, setNumSteps] = useState(100);
+  const [dragMultiplier, setDragMultiplier] = useState(1.0);
 
   // Playback & Scrubber state
   const [currentStepIndex, setCurrentStepIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeedMs, setPlaybackSpeedMs] = useState(300);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
-  // Run simulation using client-side TypeScript engine
+  // Run client-side simulation engine
   const trajectory = useMemo(() => {
+    const customCdA = (2.2 * 0.04) * dragMultiplier;
     return runSimulationJS(
       initialAlt,
       initialSocPct,
       initialPropellantKg,
-      numSteps
+      numSteps,
+      startTimeSec,
+      { Cd_A: customCdA }
     );
-  }, [initialAlt, initialSocPct, initialPropellantKg, numSteps]);
+  }, [initialAlt, initialSocPct, initialPropellantKg, numSteps, startTimeSec, dragMultiplier]);
 
   // Active step record
   const maxStep = trajectory.length;
@@ -65,32 +76,41 @@ export default function DashboardPage() {
           }
           return current + 1;
         });
-      }, 300);
+      }, playbackSpeedMs);
     }
     return () => clearInterval(timer);
-  }, [isPlaying, maxStep]);
+  }, [isPlaying, maxStep, playbackSpeedMs]);
 
-  const handleApplyPreset = (alt: number, soc: number, fuel: number) => {
+  const handleApplyScenario = (
+    alt: number,
+    soc: number,
+    fuel: number,
+    startTime: number,
+    dragMult: number = 1.0
+  ) => {
     setInitialAlt(alt);
     setInitialSocPct(soc);
     setInitialPropellantKg(fuel);
-    setCurrentStepIndex(null);
+    setStartTimeSec(startTime);
+    setDragMultiplier(dragMult);
+    setCurrentStepIndex(1);
+    setIsPlaying(false);
   };
 
-  // Top metric deltas
+  // Metric deltas
   const altDelta = currentRecord.alt_km - 400.0;
   const socDelta = telem.delta_soc * 100.0;
 
   const modeNames: Record<number, string> = {
     0: "Safe Mode (2W)",
     1: "Standard (5W)",
-    2: "Payload (12W)",
+    2: "Payload Mode (12W)",
   };
 
   const burnDur = currentRecord.burn_duration_s;
   let thrusterLabel = "Idle (0s)";
   if (burnDur === 2.0) thrusterLabel = "Short Pulse (2s)";
-  if (burnDur === 10.0) thrusterLabel = "Long Pulse (10s)";
+  if (burnDur === 10.0) thrusterLabel = "Long Burn (10s)";
 
   return (
     <div className="min-h-screen bg-space-900 text-gray-100 p-4 md:p-8 space-y-6">
@@ -103,14 +123,14 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl font-extrabold text-white tracking-tight">
-                Autonomous Satellite Mission Dashboard
+                Autonomous Satellite Power & Propulsion Dashboard
               </h1>
               <span className="px-2.5 py-0.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold rounded-full">
-                LIVE TS-ENGINE
+                4D MDP DISCRETIZATION
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              Multi-Objective LEO Station-Keeping, Solar Harvesting & Battery Management
+              Interactive Educational Simulator for Satellite Station-Keeping, Eclipse Cycles & Battery Management
             </p>
           </div>
         </div>
@@ -136,13 +156,25 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Tutorial Modal */}
+      {/* Tutorial Onboarding Modal */}
       <TutorialModal
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
       />
 
-      {/* 2. Educational Input Controls & Presets */}
+      {/* 2. Interactive Scenario Sandbox */}
+      <ScenarioPresets onApplyScenario={handleApplyScenario} />
+
+      {/* 3. Explicit 4D Discrete State Space Classification HUD */}
+      <StateBinsHud
+        bins={currentRecord.bins}
+        altitudeKm={currentRecord.alt_km}
+        socPct={currentRecord.soc_pct}
+        propellantKg={currentRecord.propellant_kg}
+        inSun={telem.in_sun}
+      />
+
+      {/* 4. Educational Parameter Sliders */}
       <InputControls
         initialAlt={initialAlt}
         setInitialAlt={setInitialAlt}
@@ -150,13 +182,14 @@ export default function DashboardPage() {
         setInitialSocPct={setInitialSocPct}
         initialPropellantKg={initialPropellantKg}
         setInitialPropellantKg={setInitialPropellantKg}
+        startTimeSec={startTimeSec}
+        setStartTimeSec={setStartTimeSec}
         numSteps={numSteps}
         setNumSteps={setNumSteps}
         onOpenTutorial={() => setIsTutorialOpen(true)}
-        onApplyPreset={handleApplyPreset}
       />
 
-      {/* 3. Top Metric Cards (Row of 5 Cards) */}
+      {/* 5. Top Metric Status Cards (Row of 5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         {/* Card 1: Altitude */}
         <div className="bg-space-800 border border-space-border p-4 rounded-xl shadow-lg flex flex-col justify-between">
@@ -170,7 +203,7 @@ export default function DashboardPage() {
             </div>
             <div
               className={`text-xs font-medium mt-1 ${
-                Math.abs(altDelta) <= 2.0 ? "text-emerald-400" : "text-rose-400"
+                Math.abs(altDelta) <= 2.0 ? "text-emerald-400" : "text-amber-400"
               }`}
             >
               {altDelta >= 0 ? "+" : ""}
@@ -203,7 +236,7 @@ export default function DashboardPage() {
         {/* Card 3: Propellant */}
         <div className="bg-space-800 border border-space-border p-4 rounded-xl shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-gray-400 uppercase tracking-wider font-semibold">
-            <span>Propellant Fuel</span>
+            <span>Propellant Reserve</span>
             <Gauge className="w-4 h-4 text-amber-400" />
           </div>
           <div className="mt-2">
@@ -211,7 +244,7 @@ export default function DashboardPage() {
               {(currentRecord.propellant_kg * 1000).toFixed(1)} g
             </div>
             <div className="text-xs text-rose-400 font-medium mt-1">
-              -{currentRecord.fuel_burned_g.toFixed(1)} g Total Burned
+              -{currentRecord.fuel_burned_g.toFixed(1)} g Total Expended
             </div>
           </div>
         </div>
@@ -227,7 +260,7 @@ export default function DashboardPage() {
               {modeNames[currentRecord.power_mode]}
             </div>
             <div className="text-xs text-gray-400 font-medium mt-1">
-              {telem.P_bus.toFixed(1)} W Bus Demand
+              {telem.P_bus.toFixed(1)} W Bus Load
             </div>
           </div>
         </div>
@@ -255,11 +288,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 4. Main Visuals: 2D Geometry & Telemetry Charts */}
+      {/* 6. Main Visuals Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: 2D Orbit Visualization */}
         <div className="lg:col-span-1">
-          <OrbitVisualizer currentRecord={currentRecord} />
+          <CentralOrbitDiagram currentRecord={currentRecord} />
         </div>
 
         {/* Right Column: Telemetry Charts */}
@@ -268,16 +301,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 5. Playback Timeline Scrubber */}
+      {/* 7. Playback Timeline Scrubber */}
       <div className="bg-space-800 border border-space-border rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => setCurrentStepIndex(1)}
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentStepIndex(1);
+            }}
             className="p-2 bg-space-700 hover:bg-space-600 rounded-lg transition-colors"
-            title="Reset to Start"
+            title="Reset to Start (Step 1)"
           >
             <SkipBack className="w-4 h-4 text-gray-300" />
           </button>
+
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className="flex items-center space-x-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-space-900 text-xs font-bold rounded-lg transition-colors shadow-lg shadow-cyan-500/20"
@@ -294,12 +331,28 @@ export default function DashboardPage() {
               </>
             )}
           </button>
+
           <button
-            onClick={() => setCurrentStepIndex(maxStep)}
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentStepIndex(maxStep);
+            }}
             className="p-2 bg-space-700 hover:bg-space-600 rounded-lg transition-colors"
             title="Jump to End"
           >
             <SkipForward className="w-4 h-4 text-gray-300" />
+          </button>
+
+          {/* Speed selector */}
+          <button
+            onClick={() => {
+              setPlaybackSpeedMs((prev) => (prev === 300 ? 150 : prev === 150 ? 50 : 300));
+            }}
+            className="px-2.5 py-1.5 bg-space-700 hover:bg-space-600 rounded-lg text-[11px] font-mono font-bold text-gray-300 flex items-center space-x-1"
+            title="Toggle Playback Speed"
+          >
+            <FastForward className="w-3.5 h-3.5" />
+            <span>{playbackSpeedMs === 300 ? "1x" : playbackSpeedMs === 150 ? "2x" : "5x"}</span>
           </button>
         </div>
 
@@ -324,7 +377,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 6. Operational Rule Inspector */}
+      {/* 8. Explainable Operational Rule Inspector */}
       <RuleInspector currentRecord={currentRecord} />
     </div>
   );
